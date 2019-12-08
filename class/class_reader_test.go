@@ -1,7 +1,6 @@
 package class
 
 import (
-	"fmt"
 	"github.com/tk103331/clazz/data"
 	"github.com/tk103331/clazz/tools"
 	"os"
@@ -21,5 +20,6 @@ func TestReadClass(t *testing.T) {
 
 	reader := NewReader(f)
 	reader.Read()
-	fmt.Println(reader.d)
+
+	reader.Accept(PrintVisitor{})
 }

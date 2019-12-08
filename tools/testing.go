@@ -38,6 +38,6 @@ func AssertNoErr(t *testing.T, e error) {
 func AssertNotNil(t *testing.T, value interface{}) {
 	t.Helper()
 	if value == nil {
-		t.Errorf("Value is nil ")
+		t.Errorf("UTF8Value is nil ")
 	}
 }
