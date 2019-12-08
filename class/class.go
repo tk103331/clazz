@@ -35,6 +35,27 @@ type Module struct {
 	AccessFlags uint16
 	Version     string
 	MainClass   string
+	Packages    []string
+}
+
+type ModuleRequire struct {
+	Name        string
+	AccessFlags uint16
+	Version     string
+}
+type ModuleExport struct {
+	Name        string
+	AccessFlags uint16
+	Modules     []string
+}
+type ModuleOpen struct {
+	Name        string
+	AccessFlags uint16
+	Modules     []string
+}
+type ModuleProvide struct {
+	Service  string
+	Provides []string
 }
 
 type Attribute struct {

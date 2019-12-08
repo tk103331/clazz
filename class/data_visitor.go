@@ -37,6 +37,9 @@ func (r ResolveDataVisitor) resolveAll() {
 	thisClass := r.resolveClassName(d.ThisClass)
 	superClass := r.resolveClassName(d.SuperClass)
 	interfaces := make([]string, d.InterfacesCount)
+	for i := uint16(0); i < d.InterfacesCount; i++ {
+		interfaces[i] = r.resolveClassName(d.Interfaces[i].Index)
+	}
 
 	version := uint32(d.MinorVersion) << 16 & uint32(d.MajorVersion)
 	var sourceFile string
@@ -44,6 +47,7 @@ func (r ResolveDataVisitor) resolveAll() {
 	var innerClasses []InnerClass
 	var nestHost string
 	var module Module
+	var moduleMainClass string
 	for _, attr := range d.Attributes {
 		name := r.resolveUTF8(attr.NameIndex)
 		switch name {
@@ -69,7 +73,9 @@ func (r ResolveDataVisitor) resolveAll() {
 		case MODULE:
 			module = r.resolveModuleAttributes(attr.Value)
 		case MODULE_MAIN_CLASS:
+			moduleMainClass = r.resolveClassName(attr.Value.Uint16())
 		case MODULE_PACKAGES:
+			attr.Value.Uint16Array()
 		case BOOTSTRAP_METHODS:
 
 		}
@@ -83,7 +89,9 @@ func (r ResolveDataVisitor) resolveAll() {
 	}
 
 	if len(module.Name) > 0 {
-		visitor.VisitModule(module.Name, module.AccessFlags, module.Version)
+		moduleVisitor := visitor.VisitModule(module.Name, module.AccessFlags, module.Version)
+		moduleVisitor.VisitMainClass(moduleMainClass)
+		moduleVisitor.VisitPackage()
 	}
 
 	if len(nestHost) > 0 {
@@ -176,9 +184,68 @@ func (r *ResolveDataVisitor) resolveInnerClasses(attrValue data.AttributeValue) 
 	return innerClasses
 }
 func (r *ResolveDataVisitor) resolveModuleAttributes(attrValue data.AttributeValue) Module {
+	offset := 0
 	array := attrValue.Uint16Array()
-	moduleName := r.resolveClassName(array[0])
-	accessFlags := array[1]
-	version := r.resolveUTF8(array[2])
-	return Module{Name: moduleName, AccessFlags: accessFlags, Version: version}
+	moduleName := r.resolveClassName(array[offset])
+	accessFlags := array[offset+1]
+	version := r.resolveUTF8(array[offset+2])
+	packageCount := array[offset+3]
+	offset += 4
+	packages := make([]string, packageCount)
+	offset += 1
+	for i := uint16(0); i < packageCount; i++ {
+		packages[i] = r.resolveUTF8(array[offset])
+		offset += 1
+	}
+
+	requireCount := array[offset]
+	offset += 1
+	requires := make([]ModuleRequire, requireCount)
+	for i := uint16(0); i < requireCount; i++ {
+		name := r.resolveUTF8(array[offset])
+		access := array[offset+1]
+		version := r.resolveUTF8(array[offset+2])
+		requires[i] = ModuleRequire{Name: name, AccessFlags: access, Version: version}
+		offset += 3
+	}
+
+	exportCount := array[offset]
+	offset += 1
+	exports := make([]ModuleExport, exportCount)
+	for i := uint16(0); i < exportCount; i++ {
+		pkgName := r.resolveUTF8(array[offset])
+		access := array[offset+1]
+		exportToCount := array[offset+2]
+		offset += 3
+		var exportTos []string
+		if exportToCount != 0 {
+			exportTos = make([]string, exportToCount)
+			for j := uint16(0); j < exportToCount; j++ {
+				exportTos[j] = r.resolveUTF8(array[offset])
+				offset += 1
+			}
+		}
+		exports[i] = ModuleExport{Name: pkgName, AccessFlags: access, Modules: exportTos}
+	}
+
+	openCount := array[offset]
+	offset += 1
+	opens := make([]ModuleOpen, openCount)
+	for i := uint16(0); i < openCount; i++ {
+		pkgName := r.resolveUTF8(array[offset])
+		access := array[offset+1]
+		openToCount := array[offset+2]
+		offset += 3
+		var openTos []string
+		if openToCount != 0 {
+			openTos = make([]string, openToCount)
+			for j := uint16(0); j < openToCount; j++ {
+				openTos[j] = r.resolveUTF8(array[offset])
+				offset += 1
+			}
+		}
+		opens[i] = ModuleOpen{Name: pkgName, AccessFlags: access, Modules: openTos}
+	}
+
+	return Module{Name: moduleName, AccessFlags: accessFlags, Version: version, Packages: packages}
 }

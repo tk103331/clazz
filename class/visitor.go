@@ -5,7 +5,7 @@ import "fmt"
 type Visitor interface {
 	Visit(version uint32, access uint16, name string, signature string, superName string, interfaces []string)
 	VisitSource(source string, debug string)
-	VisitModule(name string, access uint16, version string)
+	VisitModule(name string, access uint16, version string) ModuleVisitor
 	VisitNestHost(nestHost string)
 	VisitOuterClass(owner string, name string, descriptor string)
 	VisitInnerClass(name string, outerName string, innerName string, access uint16)
@@ -14,6 +14,24 @@ type Visitor interface {
 	VisitField(field Field)
 	VisitMethod(method Method)
 	VisitEnd()
+}
+
+type ModuleVisitor interface {
+	VisitMainClass(mainClass string)
+	VisitPackage(packageName string)
+	VisitRequire(moduleName string, access uint16, version string)
+	VisitExport(packageName string, access uint16, modules []string)
+	VisitOpen(packageName string, access uint16, modules []string)
+	VisitUse(service string)
+	VisitProvide(service string, providers []string)
+	VisitEnd()
+}
+
+type MethodVisitor interface {
+}
+
+type FieldVisitor interface {
+	VisitAnnotation(descriptor string, visible bool)
 }
 
 type PrintVisitor struct {
