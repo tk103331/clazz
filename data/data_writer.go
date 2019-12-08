@@ -18,88 +18,30 @@ func NewWriter(writer io.Writer) *DataWriter {
 func (dw *DataWriter) WriteByte(value byte) error {
 	return dw.w.WriteByte(value)
 }
-
-// WriteVarInt writes a variable length representation of an integer value that reduces the number of written bytes for small positive values.
-func (dw *DataWriter) WriteVarInt(value int) error {
-	if (value & 0xFFFFFF80) == 0 {
-		err := dw.w.WriteByte(byte(value))
-		if err != nil {
-			return err
-		}
-	} else {
-		err := dw.w.WriteByte(byte(0x80 | (value & 0x7F)))
-		if err != nil {
-			return err
-		}
-		value = value >> 7
-		err = dw.WriteVarInt(value)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (dw *DataWriter) WriteBytes(value []byte) error {
+	_, err := dw.w.Write(value)
+	return err
 }
 
-// WriteString writes a string.
-func (dw *DataWriter) WriteString(value string) error {
-	bytes := []rune(value)
-	bytesNumber := uint16(len(bytes))
-	err := binary.Write(dw.w, binary.BigEndian, bytesNumber)
-	if err != nil {
-		return err
-	}
-	runes := []rune(value)
-	for _, r := range runes {
-		_, err = dw.w.WriteRune(r)
-	}
-	if err != nil {
-		return err
-	}
-	return nil
+func (dw *DataWriter) WriteUint8(value uint8) error {
+	return binary.Write(dw.w, binary.BigEndian, value)
 }
-
-// WriteString writes a utf string.
-func (dw *DataWriter) WriteUTF(value string) error {
-	return dw.WriteString(value)
-}
-
-// WriteBoolArray writes a boolean array.
-func (dw *DataWriter) WriteBoolArray(array []bool) error {
-	arrayLength := len(array)
-	err := dw.WriteVarInt(arrayLength)
-	if err != nil {
-		return err
-	}
-
-	var buffer byte = 0
-	var bufferSize uint = 0
-	for _, b := range array {
-		if b {
-			buffer |= 0x01 << bufferSize
-		}
-		bufferSize++
-		if bufferSize == 8 {
-			err = dw.w.WriteByte(buffer)
-			if err != nil {
-				return err
-			}
-			buffer = 0
-			bufferSize = 0
-		}
-	}
-	if bufferSize > 0 {
-		err = dw.w.WriteByte(buffer)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (dw *DataWriter) WriteInt16(value int16) error {
 	return binary.Write(dw.w, binary.BigEndian, value)
 }
 func (dw *DataWriter) WriteUint16(value uint16) error {
+	return binary.Write(dw.w, binary.BigEndian, value)
+}
+func (dw *DataWriter) WriteUint32(value uint32) error {
+	return binary.Write(dw.w, binary.BigEndian, value)
+}
+func (dw *DataWriter) WriteInt32(value int32) error {
+	return binary.Write(dw.w, binary.BigEndian, value)
+}
+func (dw *DataWriter) WriteFloat32(value float32) error {
+	return binary.Write(dw.w, binary.BigEndian, value)
+}
+func (dw *DataWriter) WriteFloat64(value float64) error {
 	return binary.Write(dw.w, binary.BigEndian, value)
 }
 func (dw *DataWriter) WriteChar(value uint16) error {

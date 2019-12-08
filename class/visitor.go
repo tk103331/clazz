@@ -2,7 +2,7 @@ package class
 
 import "fmt"
 
-type ClassVisitor interface {
+type Visitor interface {
 	Visit(version uint32, access uint16, name string, signature string, superName string, interfaces []string)
 	VisitSource(source string, debug string)
 	VisitModule(name string, access uint16, version string)
@@ -10,7 +10,7 @@ type ClassVisitor interface {
 	VisitOuterClass(owner string, name string, descriptor string)
 	VisitInnerClass(name string, outerName string, innerName string, access uint16)
 	VisitAnnotation(descriptor string, visible bool)
-	VisitAttribute(attribute AttributeInfo)
+	VisitAttribute(attribute Attribute)
 	VisitField(field Field)
 	VisitMethod(method Method)
 	VisitEnd()
@@ -52,7 +52,7 @@ func (p PrintVisitor) VisitAnnotation(descriptor string, visible bool) {
 	fmt.Printf("Descriptor: %s Visible: %v", descriptor, visible)
 }
 
-func (p PrintVisitor) VisitAttribute(attribute AttributeInfo) {
+func (p PrintVisitor) VisitAttribute(attribute Attribute) {
 	fmt.Printf("Attribute: %v\n", attribute)
 }
 
