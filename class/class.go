@@ -1,26 +1,51 @@
 package class
 
+import (
+	"github.com/tk103331/clazz/class/data"
+	"strings"
+)
+
 type Class struct {
-	Version     uint32
-	AccessFlags uint16
-	ThisClass   string
-	SuperClass  string
-	Interfaces  []string
-	Fields      []Field
-	Methods     []Method
-	Attributes  []Attribute
+	Version                     uint32
+	AccessFlags                 uint16
+	Signature                   string
+	ThisClass                   string
+	SuperClass                  string
+	Deprecated                  bool
+	Interfaces                  []string
+	Fields                      []Field
+	Methods                     []Method
+	Attributes                  []Attribute
+	SourceFile                  string
+	SourceDebugExtension        string
+	Module                      Module
+	InnerClasses                []InnerClass
+	OuterClass                  OuterClass
+	NestHost                    string
+	RuntimeVisibleAnnotations   []Annotation
+	RuntimeInvisibleAnnotations []Annotation
+	NestMembers                 []string
 }
 
 type Field struct {
-	Name        string
-	AccessFlags uint16
-	Descriptor  string
+	Name                        string
+	AccessFlags                 uint16
+	Descriptor                  string
+	Signature                   string
+	Deprecated                  bool
+	RuntimeVisibleAnnotations   []Annotation
+	RuntimeInvisibleAnnotations []Annotation
+	Attributes                  []Attribute
+	ConstantValue               interface{}
 }
 
 type Method struct {
-	Name        string
-	AccessFlags uint16
-	Descriptor  string
+	Name                        string
+	AccessFlags                 uint16
+	Descriptor                  string
+	RuntimeVisibleAnnotations   []Annotation
+	RuntimeInvisibleAnnotations []Annotation
+	Attributes                  []Attribute
 }
 
 type InnerClass struct {
@@ -29,6 +54,11 @@ type InnerClass struct {
 	InnerName   string
 	AccessFlags uint16
 }
+type OuterClass struct {
+	ClassName  string
+	MethodName string
+	Descriptor string
+}
 
 type Module struct {
 	Name        string
@@ -36,6 +66,11 @@ type Module struct {
 	Version     string
 	MainClass   string
 	Packages    []string
+	Requires    []ModuleRequire
+	Exports     []ModuleExport
+	Opens       []ModuleOpen
+	Uses        []string
+	Provides    []ModuleProvide
 }
 
 type ModuleRequire struct {
@@ -60,4 +95,38 @@ type ModuleProvide struct {
 
 type Attribute struct {
 	Name string
+}
+
+type TypePath struct {
+}
+
+type Handle struct {
+	Tag         uint16
+	Owner       string
+	Name        string
+	Descriptor  string
+	IsInterface bool
+}
+type Annotation struct {
+	Descriptor string
+	Visible    bool
+}
+
+func NewObjectType(internalName string) Type {
+	sort := data.TYPE_SORT_INTERNAL
+	if strings.HasPrefix(internalName, "[") {
+		sort = data.TYPE_SORT_ARRAY
+	}
+	return Type{sort: sort, value: internalName, begin: 0, end: len(internalName)}
+}
+
+func NewMethodType(methodDescriptor string) Type {
+	return Type{sort: data.TYPE_SORT_METHOD, value: methodDescriptor, begin: 0, end: len(methodDescriptor)}
+}
+
+type Type struct {
+	sort  int
+	value string
+	begin int
+	end   int
 }

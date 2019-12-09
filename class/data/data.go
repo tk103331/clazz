@@ -135,7 +135,7 @@ func (c ConstantMethodRefData) Tag() uint8 {
 }
 
 type ConstantInterfaceMethodRefData struct {
-	InterfaceIndex   uint16
+	ClassIndex       uint16
 	NameAndTypeIndex uint16
 }
 
@@ -144,8 +144,8 @@ func (c ConstantInterfaceMethodRefData) Tag() uint8 {
 }
 
 type ConstantNameAndTypeData struct {
-	NameIndex uint16
-	TypeIndex uint16
+	NameIndex       uint16
+	DescriptorIndex uint16
 }
 
 func (c ConstantNameAndTypeData) Tag() uint8 {
@@ -153,8 +153,8 @@ func (c ConstantNameAndTypeData) Tag() uint8 {
 }
 
 type ConstantMethodHandleData struct {
-	value1 uint8
-	value2 uint16
+	ReferenceKind  uint8
+	ReferenceIndex uint16
 }
 
 func (c ConstantMethodHandleData) Tag() uint8 {
@@ -162,7 +162,7 @@ func (c ConstantMethodHandleData) Tag() uint8 {
 }
 
 type ConstantMethodTypeData struct {
-	value uint16
+	DescriptorIndex uint16
 }
 
 func (c ConstantMethodTypeData) Tag() uint8 {
@@ -178,7 +178,8 @@ func (c ConstantDynamicData) Tag() uint8 {
 }
 
 type ConstantInvokeDynamicData struct {
-	value uint32
+	BootstrapMethodIndex uint16
+	NameAndTypeIndex     uint16
 }
 
 func (c ConstantInvokeDynamicData) Tag() uint8 {
@@ -186,7 +187,7 @@ func (c ConstantInvokeDynamicData) Tag() uint8 {
 }
 
 type ConstantPackageData struct {
-	value uint16
+	NameIndex uint16
 }
 
 func (c ConstantPackageData) Tag() uint8 {
@@ -194,7 +195,7 @@ func (c ConstantPackageData) Tag() uint8 {
 }
 
 type ConstantModuleData struct {
-	value uint16
+	NameIndex uint16
 }
 
 func (c ConstantModuleData) Tag() uint8 {

@@ -66,31 +66,32 @@ func (w Writer) VisitConstants(constants []ConstantData) {
 			writer.WriteUint16(methodRefData.NameAndTypeIndex)
 		case TAG_CONSTANT_INTERFACE_METHODREF:
 			interfaceMethodRefData := data.(ConstantInterfaceMethodRefData)
-			writer.WriteUint16(interfaceMethodRefData.InterfaceIndex)
+			writer.WriteUint16(interfaceMethodRefData.ClassIndex)
 			writer.WriteUint16(interfaceMethodRefData.NameAndTypeIndex)
 		case TAG_CONSTANT_NAME_AND_TYPE:
 			nameAndTypeData := data.(ConstantNameAndTypeData)
 			writer.WriteUint16(nameAndTypeData.NameIndex)
-			writer.WriteUint16(nameAndTypeData.TypeIndex)
+			writer.WriteUint16(nameAndTypeData.DescriptorIndex)
 		case TAG_CONSTANT_METHOD_HANDLE:
 			methodHandleData := data.(ConstantMethodHandleData)
-			writer.WriteUint8(methodHandleData.value1)
-			writer.WriteUint16(methodHandleData.value2)
+			writer.WriteUint8(methodHandleData.ReferenceKind)
+			writer.WriteUint16(methodHandleData.ReferenceIndex)
 		case TAG_CONSTANT_METHOD_TYPE:
 			methodTypeData := data.(ConstantMethodTypeData)
-			writer.WriteUint16(methodTypeData.value)
+			writer.WriteUint16(methodTypeData.DescriptorIndex)
 		case TAG_CONSTANT_DYNAMIC:
 			dynamicData := data.(ConstantDynamicData)
 			writer.WriteUint32(dynamicData.value)
 		case TAG_CONSTANT_INVOKE_DYNAMIC:
 			invokeDynamicData := data.(ConstantInvokeDynamicData)
-			writer.WriteUint32(invokeDynamicData.value)
+			writer.WriteUint16(invokeDynamicData.BootstrapMethodIndex)
+			writer.WriteUint16(invokeDynamicData.NameAndTypeIndex)
 		case TAG_CONSTANT_MODULE:
 			moduleData := data.(ConstantModuleData)
-			writer.WriteUint16(moduleData.value)
+			writer.WriteUint16(moduleData.NameIndex)
 		case TAG_CONSTANT_PACKAGE:
 			packageData := data.(ConstantPackageData)
-			writer.WriteUint16(packageData.value)
+			writer.WriteUint16(packageData.NameIndex)
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package class
+package data
 
 // Java ClassFile versions (the minor version is stored in the 16 most significant bits, and the
 // major version in the 16 least significant bits).
@@ -206,3 +206,15 @@ const MONITOREXIT = 195       // -
 const MULTIANEWARRAY = 197    // visitMultiANewArrayInsn
 const IFNULL = 198            // visitJumpInsn
 const IFNONNULL = 199         // -
+
+const (
+	HANDLE_GETFIELD uint8 = iota
+	HANDLE_GETSTATIC
+	HANDLE_PUTFIELD
+	HANDLE_PUTSTATIC
+	HANDLE_INVOKEVIRTUAL
+	HANDLE_INVOKESTATIC
+	HANDLE_INVOKESPECIAL
+	HANDLE_NEWINVOKESPECIAL
+	HANDLE_INVOKEINTERFACE
+)

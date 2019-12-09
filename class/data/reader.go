@@ -95,23 +95,23 @@ func (r *Reader) readConstantPool(count uint16) []ConstantData {
 		case TAG_CONSTANT_INTERFACE_METHODREF:
 			interfaceIndex := r.readU2()
 			methodIndex := r.readU2()
-			pool[i] = ConstantInterfaceMethodRefData{InterfaceIndex: interfaceIndex, NameAndTypeIndex: methodIndex}
+			pool[i] = ConstantInterfaceMethodRefData{ClassIndex: interfaceIndex, NameAndTypeIndex: methodIndex}
 		case TAG_CONSTANT_NAME_AND_TYPE:
 			nameIndex := r.readU2()
 			typeIndex := r.readU2()
-			pool[i] = ConstantNameAndTypeData{NameIndex: nameIndex, TypeIndex: typeIndex}
+			pool[i] = ConstantNameAndTypeData{NameIndex: nameIndex, DescriptorIndex: typeIndex}
 		case TAG_CONSTANT_METHOD_HANDLE:
-			pool[i] = ConstantMethodHandleData{value1: r.readU1(), value2: r.readU2()}
+			pool[i] = ConstantMethodHandleData{ReferenceKind: r.readU1(), ReferenceIndex: r.readU2()}
 		case TAG_CONSTANT_METHOD_TYPE:
-			pool[i] = ConstantMethodTypeData{value: r.readU2()}
+			pool[i] = ConstantMethodTypeData{DescriptorIndex: r.readU2()}
 		case TAG_CONSTANT_DYNAMIC:
 			pool[i] = ConstantDynamicData{value: r.readU4()}
 		case TAG_CONSTANT_INVOKE_DYNAMIC:
-			pool[i] = ConstantInvokeDynamicData{value: r.readU4()}
+			pool[i] = ConstantInvokeDynamicData{BootstrapMethodIndex: r.readU2(), NameAndTypeIndex: r.readU2()}
 		case TAG_CONSTANT_MODULE:
-			pool[i] = ConstantModuleData{value: r.readU2()}
+			pool[i] = ConstantModuleData{NameIndex: r.readU2()}
 		case TAG_CONSTANT_PACKAGE:
-			pool[i] = ConstantPackageData{value: r.readU2()}
+			pool[i] = ConstantPackageData{NameIndex: r.readU2()}
 		}
 	}
 	return pool
