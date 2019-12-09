@@ -42,17 +42,10 @@ type ClassData struct {
 	Attributes      []AttributeData
 }
 
-func (d *ClassData) resolveClassName(index uint16) string {
-	classData := d.ConstantPool[index].(ConstantClassData)
-	return d.resolveUTF8(classData.NameIndex)
-}
-func (d *ClassData) resolveString(index uint16) string {
-	strData := d.ConstantPool[index].(ConstantStringData)
-	return d.resolveUTF8(strData.ValueIndex)
-}
-func (d *ClassData) resolveUTF8(index uint16) string {
-	utf8Data := d.ConstantPool[index].(ConstantUTF8Data)
-	return utf8Data.UTF8Value
+type ConstantReferenceData interface {
+	ConstantData
+	OwnerIndex() uint16
+	DescriptorIndex() uint16
 }
 
 type ConstantData interface {
@@ -124,6 +117,13 @@ type ConstantFieldRefData struct {
 func (c ConstantFieldRefData) Tag() uint8 {
 	return TAG_CONSTANT_FIELDREF
 }
+func (c ConstantFieldRefData) OwnerIndex() uint16 {
+	return c.ClassIndex
+}
+
+func (c ConstantFieldRefData) DescriptorIndex() uint16 {
+	return c.NameAndTypeIndex
+}
 
 type ConstantMethodRefData struct {
 	ClassIndex       uint16
@@ -133,6 +133,13 @@ type ConstantMethodRefData struct {
 func (c ConstantMethodRefData) Tag() uint8 {
 	return TAG_CONSTANT_METHODREF
 }
+func (c ConstantMethodRefData) OwnerIndex() uint16 {
+	return c.ClassIndex
+}
+
+func (c ConstantMethodRefData) DescriptorIndex() uint16 {
+	return c.NameAndTypeIndex
+}
 
 type ConstantInterfaceMethodRefData struct {
 	ClassIndex       uint16
@@ -141,6 +148,14 @@ type ConstantInterfaceMethodRefData struct {
 
 func (c ConstantInterfaceMethodRefData) Tag() uint8 {
 	return TAG_CONSTANT_INTERFACE_METHODREF
+}
+
+func (c ConstantInterfaceMethodRefData) OwnerIndex() uint16 {
+	return c.ClassIndex
+}
+
+func (c ConstantInterfaceMethodRefData) DescriptorIndex() uint16 {
+	return c.NameAndTypeIndex
 }
 
 type ConstantNameAndTypeData struct {
@@ -170,7 +185,8 @@ func (c ConstantMethodTypeData) Tag() uint8 {
 }
 
 type ConstantDynamicData struct {
-	value uint32
+	BootstrapMethodIndex uint16
+	NameAndTypeIndex     uint16
 }
 
 func (c ConstantDynamicData) Tag() uint8 {

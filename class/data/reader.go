@@ -105,7 +105,7 @@ func (r *Reader) readConstantPool(count uint16) []ConstantData {
 		case TAG_CONSTANT_METHOD_TYPE:
 			pool[i] = ConstantMethodTypeData{DescriptorIndex: r.readU2()}
 		case TAG_CONSTANT_DYNAMIC:
-			pool[i] = ConstantDynamicData{value: r.readU4()}
+			pool[i] = ConstantDynamicData{BootstrapMethodIndex: r.readU2(), NameAndTypeIndex: r.readU2()}
 		case TAG_CONSTANT_INVOKE_DYNAMIC:
 			pool[i] = ConstantInvokeDynamicData{BootstrapMethodIndex: r.readU2(), NameAndTypeIndex: r.readU2()}
 		case TAG_CONSTANT_MODULE:

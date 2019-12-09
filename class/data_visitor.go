@@ -6,7 +6,9 @@ import (
 
 type ResolveDataVisitor struct {
 	data.DataVisitor
-	class *Class
+	class                 *Class
+	constantDynamicValues map[uint16]ConstantDynamic
+	BootstrapMethods      []BootstrapMethod
 }
 
 func (r *ResolveDataVisitor) Class() Class {
@@ -23,6 +25,7 @@ func (r *ResolveDataVisitor) Accept(visitor Visitor) {
 
 func (r *ResolveDataVisitor) VisitEnd() {
 	r.class = &Class{}
+	r.constantDynamicValues = make(map[uint16]ConstantDynamic)
 	r.resolveAll()
 }
 
@@ -41,6 +44,13 @@ func (r *ResolveDataVisitor) resolveUTF8(index uint16) string {
 func (r *ResolveDataVisitor) resolveNameAndType(index uint16) (string, string) {
 	nameAndTypeData := r.Data().ConstantPool[index].(data.ConstantNameAndTypeData)
 	return r.resolveUTF8(nameAndTypeData.NameIndex), r.resolveUTF8(nameAndTypeData.DescriptorIndex)
+}
+func (r *ResolveDataVisitor) resolveReference(index uint16) ConstantReference {
+	referenceData := r.Data().ConstantPool[index].(data.ConstantReferenceData)
+	owner := r.resolveUTF8(referenceData.OwnerIndex())
+	name, descriptor := r.resolveNameAndType(referenceData.DescriptorIndex())
+	isInterface := referenceData.Tag() == data.TAG_CONSTANT_INTERFACE_METHODREF
+	return ConstantReference{Tag: referenceData.Tag(), Owner: owner, Name: name, Descriptor: descriptor, IsInterface: isInterface}
 }
 
 func (r ResolveDataVisitor) resolveAll() {
@@ -95,7 +105,7 @@ func (r ResolveDataVisitor) resolveAll() {
 		case data.MODULE_PACKAGES:
 			modulePackages = r.resolveModulePackages(attr.Value)
 		case data.BOOTSTRAP_METHODS:
-
+			class.BootstrapMethods = r.resolveBootstrapMethods(attr.Value)
 		}
 
 	}
@@ -137,10 +147,11 @@ func (r *ResolveDataVisitor) resolveConstantValue(constIndex uint16) interface{}
 		return NewObjectType(className)
 	case data.TAG_CONSTANT_STRING:
 		stringData := constantData.(data.ConstantStringData)
-		r.resolveUTF8(stringData.ValueIndex)
+		return r.resolveUTF8(stringData.ValueIndex)
 	case data.TAG_CONSTANT_METHOD_HANDLE:
 		methodHandleData := constantData.(data.ConstantMethodHandleData)
-		return methodHandleData
+		reference := r.resolveReference(methodHandleData.ReferenceIndex)
+		return Handle{Tag: methodHandleData.Tag(), Owner: reference.Owner, Name: reference.Name, Descriptor: reference.Descriptor}
 	case data.TAG_CONSTANT_METHOD_TYPE:
 		methodTypeData := constantData.(data.ConstantMethodTypeData)
 		descriptor := r.resolveUTF8(methodTypeData.DescriptorIndex)
@@ -203,7 +214,9 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 		case data.CODE:
 		case data.EXCEPTIONS:
 		case data.DEPRECATED:
+			method.Deprecated = true
 		case data.SYNTHETIC:
+			method.AccessFlags |= data.ACC_SYNTHETIC
 		case data.RUNTIME_VISIBLE_ANNOTATIONS:
 			method.RuntimeVisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, true)
 		case data.RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
@@ -367,4 +380,33 @@ func (r *ResolveDataVisitor) resolveNestMembers(attrValue data.AttributeValue) [
 		nestMembers[i] = member
 	}
 	return nestMembers
+}
+func (r *ResolveDataVisitor) resolveConstantDynamic(index uint16) ConstantDynamic {
+	if constantDynamic, ok := r.constantDynamicValues[index]; ok {
+		return constantDynamic
+	}
+	dynamicData := r.Data().ConstantPool[index].(data.ConstantDynamicData)
+	name, descriptor := r.resolveNameAndType(dynamicData.NameAndTypeIndex)
+	bootstrapMethod := r.Class().BootstrapMethods[dynamicData.BootstrapMethodIndex]
+	return ConstantDynamic{Name: name, Descriptor: descriptor, BootstrapMethod: bootstrapMethod.Handle, BootstrapMethodArguments: bootstrapMethod.Arguments}
+}
+
+func (r *ResolveDataVisitor) resolveBootstrapMethods(attrValue data.AttributeValue) []BootstrapMethod {
+	array := attrValue.Uint16Array()
+	offset := 0
+	methodCount := array[offset]
+	offset += 1
+	methods := make([]BootstrapMethod, methodCount)
+	for i := uint16(0); i < methodCount; i++ {
+		handle := r.resolveConstantValue(array[offset]).(Handle)
+		argCount := array[offset+1]
+		offset += 2
+		args := make([]interface{}, argCount)
+		for j := uint16(0); j < argCount; j++ {
+			args[j] = r.resolveConstantValue(array[offset])
+			offset += 1
+		}
+		methods[i] = BootstrapMethod{Handle: handle, Arguments: args}
+	}
+	return methods
 }

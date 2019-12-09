@@ -25,6 +25,7 @@ type Class struct {
 	RuntimeVisibleAnnotations   []Annotation
 	RuntimeInvisibleAnnotations []Annotation
 	NestMembers                 []string
+	BootstrapMethods            []BootstrapMethod
 }
 
 type Field struct {
@@ -43,6 +44,8 @@ type Method struct {
 	Name                        string
 	AccessFlags                 uint16
 	Descriptor                  string
+	Signature                   string
+	Deprecated                  bool
 	RuntimeVisibleAnnotations   []Annotation
 	RuntimeInvisibleAnnotations []Annotation
 	Attributes                  []Attribute
@@ -101,7 +104,7 @@ type TypePath struct {
 }
 
 type Handle struct {
-	Tag         uint16
+	Tag         uint8
 	Owner       string
 	Name        string
 	Descriptor  string
@@ -110,6 +113,26 @@ type Handle struct {
 type Annotation struct {
 	Descriptor string
 	Visible    bool
+}
+
+type ConstantReference struct {
+	Tag         uint8
+	Owner       string
+	Name        string
+	Descriptor  string
+	IsInterface bool
+}
+
+type ConstantDynamic struct {
+	Name                     string
+	Descriptor               string
+	BootstrapMethod          Handle
+	BootstrapMethodArguments []interface{}
+}
+
+type BootstrapMethod struct {
+	Handle    Handle
+	Arguments []interface{}
 }
 
 func NewObjectType(internalName string) Type {
