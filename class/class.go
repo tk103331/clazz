@@ -49,6 +49,7 @@ type Method struct {
 	RuntimeVisibleAnnotations   []Annotation
 	RuntimeInvisibleAnnotations []Annotation
 	Attributes                  []Attribute
+	Exceptions                  []string
 }
 
 type InnerClass struct {
@@ -97,7 +98,8 @@ type ModuleProvide struct {
 }
 
 type Attribute struct {
-	Name string
+	Name    string
+	Content []byte
 }
 
 type TypePath struct {

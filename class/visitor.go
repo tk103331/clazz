@@ -17,7 +17,7 @@ type Visitor interface {
 	VisitNestMember(nestMember string)
 	VisitInnerClass(name string, outerName string, innerName string, access uint16)
 	VisitField(access uint16, name string, descriptor string, signature string, value interface{}) FieldVisitor
-	VisitMethod(access uint16, name string, descriptor string, signature string, exceptions []string)
+	VisitMethod(access uint16, name string, descriptor string, signature string, exceptions []string) MethodVisitor
 	//VisitRecordComponentExperimental(access uint16, name string, descriptor string, signature string)
 	VisitEnd()
 }

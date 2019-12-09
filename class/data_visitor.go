@@ -19,8 +19,81 @@ func (r *ResolveDataVisitor) Accept(visitor Visitor) {
 	if visitor != nil {
 		class := r.class
 		visitor.Visit(class.Version, class.AccessFlags, class.ThisClass, class.SuperClass, class.Signature, class.Interfaces)
+		visitor.VisitSource(class.SourceFile, class.SourceDebugExtension)
+
+		module := class.Module
+		moduleVisitor := visitor.VisitModule(module.Name, module.AccessFlags, module.Version)
+		r.acceptModule(moduleVisitor, module)
+
+		visitor.VisitNestHost(class.NestHost)
+		visitor.VisitOuterClass(class.OuterClass.ClassName, class.OuterClass.MethodName, class.OuterClass.Descriptor)
+
+		for _, annotation := range class.RuntimeVisibleAnnotations {
+			annotationVisitor := visitor.VisitAnnotation(annotation.Descriptor, annotation.Visible)
+			r.acceptAnnotation(annotationVisitor, annotation)
+		}
+		for _, annotation := range class.RuntimeInvisibleAnnotations {
+			annotationVisitor := visitor.VisitAnnotation(annotation.Descriptor, annotation.Visible)
+			r.acceptAnnotation(annotationVisitor, annotation)
+		}
+		// TODO RuntimeVisibleTypeAnnotations
+		// TODO RuntimeInvisibleTypeAnnotations
+
+		for _, attr := range class.Attributes {
+			visitor.VisitAttribute(attr)
+		}
+		for _, member := range class.NestMembers {
+			visitor.VisitNestMember(member)
+		}
+		for _, cls := range class.InnerClasses {
+			visitor.VisitInnerClass(cls.Name, cls.OuterName, cls.InnerName, cls.AccessFlags)
+		}
+		for _, field := range class.Fields {
+			fieldVisitor := visitor.VisitField(field.AccessFlags, field.Name, field.Descriptor, field.Signature, field.ConstantValue)
+			r.acceptField(fieldVisitor, field)
+		}
+		for _, method := range class.Methods {
+			methodVisitor := visitor.VisitMethod(method.AccessFlags, method.Name, method.Descriptor, method.Signature, method.Exceptions)
+			r.acceptMethod(methodVisitor, method)
+		}
+
 		visitor.VisitEnd()
 	}
+}
+
+func (r *ResolveDataVisitor) acceptModule(visitor ModuleVisitor, module Module) {
+	if visitor != nil {
+		visitor.VisitMainClass(module.MainClass)
+		for _, pkg := range module.Packages {
+			visitor.VisitPackage(pkg)
+		}
+		for _, r := range module.Requires {
+			visitor.VisitRequire(r.Name, r.AccessFlags, r.Version)
+		}
+		for _, e := range module.Exports {
+			visitor.VisitExport(e.Name, e.AccessFlags, e.Modules)
+		}
+		for _, o := range module.Opens {
+			visitor.VisitOpen(o.Name, o.AccessFlags, o.Modules)
+		}
+		for _, u := range module.Uses {
+			visitor.VisitUse(u)
+		}
+		for _, p := range module.Provides {
+			visitor.VisitProvide(p.Service, p.Provides)
+		}
+		visitor.VisitEnd()
+	}
+}
+func (r *ResolveDataVisitor) acceptAnnotation(visitor AnnotationVisitor, annotation Annotation) {
+	// TODO
+}
+
+func (r *ResolveDataVisitor) acceptField(visitor FieldVisitor, field Field) {
+	// TODO
+}
+func (r *ResolveDataVisitor) acceptMethod(visitor MethodVisitor, method Method) {
+	// TODO
 }
 
 func (r *ResolveDataVisitor) VisitEnd() {
@@ -69,6 +142,7 @@ func (r ResolveDataVisitor) resolveAll() {
 	var module Module
 	var moduleMainClass string
 	var modulePackages []string
+	attributes := make([]Attribute, 0)
 	for _, attr := range classData.Attributes {
 		name := r.resolveUTF8(attr.NameIndex)
 		switch name {
@@ -88,6 +162,7 @@ func (r ResolveDataVisitor) resolveAll() {
 		case data.RUNTIME_VISIBLE_ANNOTATIONS:
 			class.RuntimeVisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, true)
 		case data.RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
+			// TODO
 		case data.DEPRECATED:
 			class.Deprecated = true
 		case data.SYNTHETIC:
@@ -97,6 +172,7 @@ func (r ResolveDataVisitor) resolveAll() {
 		case data.RUNTIME_INVISIBLE_ANNOTATIONS:
 			class.RuntimeVisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, false)
 		case data.RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
+			// TODO
 		case data.RECORD:
 		case data.MODULE:
 			module = r.resolveModuleAttributes(attr.Value)
@@ -106,6 +182,8 @@ func (r ResolveDataVisitor) resolveAll() {
 			modulePackages = r.resolveModulePackages(attr.Value)
 		case data.BOOTSTRAP_METHODS:
 			class.BootstrapMethods = r.resolveBootstrapMethods(attr.Value)
+		default:
+			attributes = append(attributes, Attribute{Name: name, Content: attr.Value})
 		}
 
 	}
@@ -115,7 +193,7 @@ func (r ResolveDataVisitor) resolveAll() {
 		module.Packages = modulePackages
 		class.Module = module
 	}
-
+	class.Attributes = attributes
 }
 
 func (r *ResolveDataVisitor) resolveConstantValue(constIndex uint16) interface{} {
@@ -192,11 +270,13 @@ func (r *ResolveDataVisitor) resolveField(fieldData data.FieldData) Field {
 		case data.RUNTIME_VISIBLE_ANNOTATIONS:
 			field.RuntimeVisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, true)
 		case data.RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
+			// TODO
 		case data.RUNTIME_INVISIBLE_ANNOTATIONS:
 			field.RuntimeInvisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, false)
 		case data.RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
+			// TODO
 		default:
-			attributes = append(attributes, Attribute{Name: name})
+			attributes = append(attributes, Attribute{Name: name, Content: attr.Value})
 		}
 	}
 	field.Attributes = attributes
@@ -220,14 +300,19 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 		case data.RUNTIME_VISIBLE_ANNOTATIONS:
 			method.RuntimeVisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, true)
 		case data.RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
+			// TODO
 		case data.RUNTIME_INVISIBLE_ANNOTATIONS:
 			method.RuntimeInvisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, false)
 		case data.RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
+			// TODO
 		case data.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS:
+			// TODO
 		case data.RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS:
+			// TODO
 		case data.METHOD_PARAMETERS:
+			// TODO
 		default:
-			attributes = append(attributes, Attribute{Name: name})
+			attributes = append(attributes, Attribute{Name: name, Content: attr.Value})
 		}
 	}
 	method.Attributes = attributes
