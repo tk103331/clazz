@@ -2,6 +2,7 @@ package class
 
 import (
 	"github.com/tk103331/clazz/class/data"
+	"github.com/tk103331/clazz/common"
 )
 
 type ResolveDataVisitor struct {
@@ -441,17 +442,54 @@ func (r *ResolveDataVisitor) resolveModuleAttributes(attrValue data.AttributeVal
 }
 
 func (r *ResolveDataVisitor) resolveRuntimeAnnotations(attrValue data.AttributeValue, visible bool) []Annotation {
-	array := attrValue.Uint16Array()
-	offset := 0
-	annotationCount := array[offset]
-	offset += 1
+	reader := attrValue.Reader()
+	annotationCount, _ := reader.ReadUint16()
 	annotations := make([]Annotation, annotationCount)
 	for i := uint16(0); i < annotationCount; i++ {
-		descriptor := r.resolveUTF8(array[offset])
-		offset += 1
+		descriptorIndex, _ := reader.ReadUint16()
+		descriptor := r.resolveUTF8(descriptorIndex)
+		elementPairCount, _ := reader.ReadUint16()
+		elementPairs := make([]ElementPair, elementPairCount)
+		for j := uint16(0); j < elementPairCount; j++ {
+			nameIndex, _ := reader.ReadUint16()
+			name := r.resolveUTF8(nameIndex)
+			tag, _ := reader.ReadUint8()
+			value := r.readElementValue(reader, tag)
+			elementPairs[i] = ElementPair{Name: name, Value: value}
+		}
 		annotations[i] = Annotation{Descriptor: descriptor, Visible: visible}
 	}
 	return annotations
+}
+
+func (r *ResolveDataVisitor) readElementValue(reader common.DataReader, tag uint8) ElementValue {
+	pool := r.Data().ConstantPool
+	index, _ := reader.ReadUint16()
+	switch tag {
+	case data.ELEMENT_TAG_BOOLEAN:
+		return ElementBooleanValue{Value: pool[index].(data.ConstantIntegerData).IntegerValue == 0}
+	case data.ELEMENT_TAG_BYTE:
+		return ElementByteValue{Value: int8(pool[index].(data.ConstantIntegerData).IntegerValue)}
+	case data.ELEMENT_TAG_CHAR:
+		return ElementCharValue{Value: uint16(pool[index].(data.ConstantIntegerData).IntegerValue)}
+	case data.ELEMENT_TAG_SHORT:
+		return ElementShortValue{Value: int16(pool[index].(data.ConstantIntegerData).IntegerValue)}
+	case data.ELEMENT_TAG_INTEGER:
+		return ElementIntegerValue{Value: pool[index].(data.ConstantIntegerData).IntegerValue}
+	case data.ELEMENT_TAG_LONG:
+		return ElementLongValue{Value: pool[index].(data.ConstantLongData).LongValue}
+	case data.ELEMENT_TAG_FLOAT:
+		return ElementFloatValue{Value: pool[index].(data.ConstantFloatData).FloatValue}
+	case data.ELEMENT_TAG_DOUBLE:
+		return ElementDoubleValue{Value: pool[index].(data.ConstantDoubleData).DoubleValue}
+	case data.ELEMENT_TAG_STRING:
+		return ElementStringValue{Value: r.resolveUTF8(index)}
+	case data.ELEMENT_TAG_CLASS:
+		return ElementClassValue{Value: r.resolveClassName(index)}
+	case data.ELEMENT_TAG_ANNOTATION:
+	case data.ELEMENT_TAG_ENUM:
+	case data.ELEMENT_TAG_ARRAY:
+	}
 }
 func (r *ResolveDataVisitor) resolveNestMembers(attrValue data.AttributeValue) []string {
 	array := attrValue.Uint16Array()

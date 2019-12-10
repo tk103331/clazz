@@ -1,7 +1,10 @@
 package data
 
 import (
+	"bytes"
 	"encoding/binary"
+	"github.com/tk103331/clazz/common"
+	"io"
 )
 
 const MAGIC_NUMBER = 0xcafebabe
@@ -260,4 +263,7 @@ func (v AttributeValue) Uint16Array() []uint16 {
 		ret[i] = binary.BigEndian.Uint16(v[i*2 : i*2+2])
 	}
 	return ret
+}
+func (v AttributeValue) Reader() common.DataReader {
+	return common.NewReader(bytes.NewBuffer(v))
 }

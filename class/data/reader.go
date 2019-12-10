@@ -1,17 +1,17 @@
 package data
 
 import (
-	"github.com/tk103331/clazz/data"
+	"github.com/tk103331/clazz/common"
 	"io"
 )
 
 type Reader struct {
-	reader *data.DataReader
+	reader *common.DataReader
 	data   *ClassData
 }
 
 func NewReader(reader io.Reader) *Reader {
-	return &Reader{reader: data.NewReader(reader), data: &ClassData{}}
+	return &Reader{reader: common.NewReader(reader), data: &ClassData{}}
 }
 
 func (r *Reader) Accept(visitor Visitor) {

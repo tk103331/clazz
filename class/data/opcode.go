@@ -218,3 +218,19 @@ const (
 	HANDLE_NEWINVOKESPECIAL
 	HANDLE_INVOKEINTERFACE
 )
+
+const (
+	ELEMENT_TAG_BOOLEAN    uint8 = 'Z'
+	ELEMENT_TAG_BYTE       uint8 = 'B'
+	ELEMENT_TAG_CHAR       uint8 = 'C'
+	ELEMENT_TAG_SHORT      uint8 = 'S'
+	ELEMENT_TAG_INTEGER    uint8 = 'I'
+	ELEMENT_TAG_LONG       uint8 = 'J'
+	ELEMENT_TAG_FLOAT      uint8 = 'F'
+	ELEMENT_TAG_DOUBLE     uint8 = 'D'
+	ELEMENT_TAG_ENUM       uint8 = 'e'
+	ELEMENT_TAG_STRING     uint8 = 's'
+	ELEMENT_TAG_CLASS      uint8 = 'c'
+	ELEMENT_TAG_ANNOTATION uint8 = '@'
+	ELEMENT_TAG_ARRAY      uint8 = '['
+)

@@ -1,17 +1,17 @@
 package data
 
 import (
-	"github.com/tk103331/clazz/data"
+	"github.com/tk103331/clazz/common"
 	"io"
 )
 
 type Writer struct {
-	writer *data.DataWriter
+	writer *common.DataWriter
 	data   *ClassData
 }
 
 func NewWriter(writer io.Writer) *Writer {
-	return &Writer{writer: data.NewWriter(writer)}
+	return &Writer{writer: common.NewWriter(writer)}
 }
 
 func (w Writer) VisitMagicNumber(magic uint32) {
