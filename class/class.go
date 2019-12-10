@@ -41,15 +41,18 @@ type Field struct {
 }
 
 type Method struct {
-	Name                        string
-	AccessFlags                 uint16
-	Descriptor                  string
-	Signature                   string
-	Deprecated                  bool
-	RuntimeVisibleAnnotations   []Annotation
-	RuntimeInvisibleAnnotations []Annotation
-	Attributes                  []Attribute
-	Exceptions                  []string
+	Name                                 string
+	AccessFlags                          uint16
+	Descriptor                           string
+	Signature                            string
+	Deprecated                           bool
+	RuntimeVisibleAnnotations            []Annotation
+	RuntimeInvisibleAnnotations          []Annotation
+	RuntimeVisibleParameterAnnotations   []ParameterAnnotation
+	RuntimeInvisibleParameterAnnotations []ParameterAnnotation
+	Attributes                           []Attribute
+	Exceptions                           []string
+	Parameters                           []MethodParameter
 }
 
 type InnerClass struct {
@@ -113,8 +116,18 @@ type Handle struct {
 	IsInterface bool
 }
 type Annotation struct {
-	Descriptor string
-	Visible    bool
+	Descriptor   string
+	Visible      bool
+	ElementPairs []ElementPair
+}
+
+type ParameterAnnotation struct {
+	Annotations []Annotation
+}
+
+type MethodParameter struct {
+	ParameterName string
+	AccessFlags   uint16
 }
 
 type ConstantReference struct {

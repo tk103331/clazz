@@ -103,6 +103,22 @@ func (r *ResolveDataVisitor) VisitEnd() {
 	r.resolveAll()
 }
 
+func (r *ResolveDataVisitor) resolveInteger(index uint16) int32 {
+	integerData := r.Data().ConstantPool[index].(data.ConstantIntegerData)
+	return integerData.IntegerValue
+}
+func (r *ResolveDataVisitor) resolveLong(index uint16) int64 {
+	longata := r.Data().ConstantPool[index].(data.ConstantLongData)
+	return longata.LongValue
+}
+func (r *ResolveDataVisitor) resolveFloat(index uint16) float32 {
+	floatData := r.Data().ConstantPool[index].(data.ConstantFloatData)
+	return floatData.FloatValue
+}
+func (r *ResolveDataVisitor) resolveDouble(index uint16) float64 {
+	doubleData := r.Data().ConstantPool[index].(data.ConstantDoubleData)
+	return doubleData.DoubleValue
+}
 func (r *ResolveDataVisitor) resolveClassName(index uint16) string {
 	classData := r.Data().ConstantPool[index].(data.ConstantClassData)
 	return r.resolveUTF8(classData.NameIndex)
@@ -293,7 +309,9 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 		name := r.resolveUTF8(attr.NameIndex)
 		switch name {
 		case data.CODE:
+			// TODO
 		case data.EXCEPTIONS:
+			// TODO
 		case data.DEPRECATED:
 			method.Deprecated = true
 		case data.SYNTHETIC:
@@ -307,11 +325,11 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 		case data.RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
 			// TODO
 		case data.RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS:
-			// TODO
+			method.RuntimeVisibleParameterAnnotations = r.resolveRuntimeParameterAnnotations(attr.Value, true)
 		case data.RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS:
-			// TODO
+			method.RuntimeInvisibleParameterAnnotations = r.resolveRuntimeParameterAnnotations(attr.Value, true)
 		case data.METHOD_PARAMETERS:
-			// TODO
+			method.Parameters = r.resolveMethodParameter(attr.Value)
 		default:
 			attributes = append(attributes, Attribute{Name: name, Content: attr.Value})
 		}
@@ -446,51 +464,114 @@ func (r *ResolveDataVisitor) resolveRuntimeAnnotations(attrValue data.AttributeV
 	annotationCount, _ := reader.ReadUint16()
 	annotations := make([]Annotation, annotationCount)
 	for i := uint16(0); i < annotationCount; i++ {
-		descriptorIndex, _ := reader.ReadUint16()
-		descriptor := r.resolveUTF8(descriptorIndex)
-		elementPairCount, _ := reader.ReadUint16()
-		elementPairs := make([]ElementPair, elementPairCount)
-		for j := uint16(0); j < elementPairCount; j++ {
-			nameIndex, _ := reader.ReadUint16()
-			name := r.resolveUTF8(nameIndex)
-			tag, _ := reader.ReadUint8()
-			value := r.readElementValue(reader, tag)
-			elementPairs[i] = ElementPair{Name: name, Value: value}
-		}
-		annotations[i] = Annotation{Descriptor: descriptor, Visible: visible}
+		annotation := r.readAnnotation(reader)
+		annotation.Visible = visible
+		annotations[i] = annotation
 	}
 	return annotations
+}
+func (r *ResolveDataVisitor) resolveRuntimeParameterAnnotations(attrValue data.AttributeValue, visible bool) []ParameterAnnotation {
+	reader := attrValue.Reader()
+	parameterCount, _ := reader.ReadUint8()
+	parameterAnnotations := make([]ParameterAnnotation, parameterCount)
+
+	for n := uint8(0); n < parameterCount; n++ {
+		annotationCount, _ := reader.ReadUint16()
+		annotations := make([]Annotation, annotationCount)
+		for i := uint16(0); i < annotationCount; i++ {
+			annotation := r.readAnnotation(reader)
+			annotation.Visible = visible
+			annotations[i] = annotation
+		}
+		parameterAnnotations[n] = ParameterAnnotation{Annotations: annotations}
+	}
+
+	return parameterAnnotations
+}
+
+func (r *ResolveDataVisitor) readAnnotation(reader common.DataReader) Annotation {
+
+	descriptorIndex, _ := reader.ReadUint16()
+	descriptor := r.resolveUTF8(descriptorIndex)
+	elementPairCount, _ := reader.ReadUint16()
+	elementPairs := make([]ElementPair, elementPairCount)
+	for j := uint16(0); j < elementPairCount; j++ {
+		nameIndex, _ := reader.ReadUint16()
+		name := r.resolveUTF8(nameIndex)
+		tag, _ := reader.ReadUint8()
+		value := r.readElementValue(reader, tag)
+		elementPairs[i] = ElementPair{Name: name, Value: value}
+	}
+	return Annotation{Descriptor: descriptor, ElementPairs: elementPairs}
 }
 
 func (r *ResolveDataVisitor) readElementValue(reader common.DataReader, tag uint8) ElementValue {
 	pool := r.Data().ConstantPool
-	index, _ := reader.ReadUint16()
+
 	switch tag {
 	case data.ELEMENT_TAG_BOOLEAN:
-		return ElementBooleanValue{Value: pool[index].(data.ConstantIntegerData).IntegerValue == 0}
+		index, _ := reader.ReadUint16()
+		return ElementBooleanValue{Value: r.resolveInteger(index) == 0}
 	case data.ELEMENT_TAG_BYTE:
-		return ElementByteValue{Value: int8(pool[index].(data.ConstantIntegerData).IntegerValue)}
+		index, _ := reader.ReadUint16()
+		return ElementByteValue{Value: int8(r.resolveInteger(index))}
 	case data.ELEMENT_TAG_CHAR:
-		return ElementCharValue{Value: uint16(pool[index].(data.ConstantIntegerData).IntegerValue)}
+		index, _ := reader.ReadUint16()
+		return ElementCharValue{Value: uint16(r.resolveInteger(index))}
 	case data.ELEMENT_TAG_SHORT:
-		return ElementShortValue{Value: int16(pool[index].(data.ConstantIntegerData).IntegerValue)}
+		index, _ := reader.ReadUint16()
+		return ElementShortValue{Value: int16(r.resolveInteger(index))}
 	case data.ELEMENT_TAG_INTEGER:
-		return ElementIntegerValue{Value: pool[index].(data.ConstantIntegerData).IntegerValue}
+		index, _ := reader.ReadUint16()
+		return ElementIntegerValue{Value: r.resolveInteger(index)}
 	case data.ELEMENT_TAG_LONG:
-		return ElementLongValue{Value: pool[index].(data.ConstantLongData).LongValue}
+		index, _ := reader.ReadUint16()
+		return ElementLongValue{Value: r.resolveLong(index)}
 	case data.ELEMENT_TAG_FLOAT:
-		return ElementFloatValue{Value: pool[index].(data.ConstantFloatData).FloatValue}
+		index, _ := reader.ReadUint16()
+		return ElementFloatValue{Value: r.resolveFloat(index)}
 	case data.ELEMENT_TAG_DOUBLE:
-		return ElementDoubleValue{Value: pool[index].(data.ConstantDoubleData).DoubleValue}
+		index, _ := reader.ReadUint16()
+		return ElementDoubleValue{Value: r.resolveDouble(index)}
 	case data.ELEMENT_TAG_STRING:
+		index, _ := reader.ReadUint16()
 		return ElementStringValue{Value: r.resolveUTF8(index)}
 	case data.ELEMENT_TAG_CLASS:
+		index, _ := reader.ReadUint16()
 		return ElementClassValue{Value: r.resolveClassName(index)}
 	case data.ELEMENT_TAG_ANNOTATION:
+		return ElementAnnotationValue{Value: r.readAnnotation(reader)}
 	case data.ELEMENT_TAG_ENUM:
+		typeNameIndex, _ := reader.ReadUint16()
+		constNameIndex, _ := reader.ReadUint16()
+		return ElementEnumValue{TypeName: r.resolveUTF8(typeNameIndex), ConstValue: r.resolveUTF8(constNameIndex)}
 	case data.ELEMENT_TAG_ARRAY:
+		itemCount, _ := reader.ReadUint16()
+		values := make([]ElementValue, itemCount)
+		for i := uint16(0); i < itemCount; i++ {
+			itemTag, _ := reader.ReadUint8()
+			value := r.readElementValue(reader, itemTag)
+			values[i] = value
+		}
+		return ElementArrayValue{Values: values}
+	default:
+		return nil
 	}
 }
+
+func (r *ResolveDataVisitor) resolveMethodParameter(attrValue data.AttributeValue) []MethodParameter {
+	reader := attrValue.Reader()
+	parameterCount, _ := reader.ReadUint8()
+	parameters := make([]MethodParameter, parameterCount)
+	for i := uint8(0); i < parameterCount; i++ {
+		nameIndex, _ := reader.ReadUint16()
+		access, _ := reader.ReadUint16()
+		parameters[i] = MethodParameter{ParameterName: r.resolveUTF8(nameIndex), AccessFlags: access}
+
+	}
+	return parameters
+}
+
 func (r *ResolveDataVisitor) resolveNestMembers(attrValue data.AttributeValue) []string {
 	array := attrValue.Uint16Array()
 	offset := 0
