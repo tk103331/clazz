@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/tk103331/clazz/common"
-	"io"
 )
 
 const MAGIC_NUMBER = 0xcafebabe
@@ -256,14 +255,25 @@ func (v AttributeValue) Uint32() uint32 {
 func (v AttributeValue) Uint64() uint64 {
 	return binary.BigEndian.Uint64(v)
 }
-func (v AttributeValue) Uint16Array() []uint16 {
-	count := len(v) / 2
-	ret := make([]uint16, count)
-	for i := 0; i < count; i++ {
-		ret[i] = binary.BigEndian.Uint16(v[i*2 : i*2+2])
-	}
-	return ret
+func (v AttributeValue) Reader() *AttributeValueReader {
+	return &AttributeValueReader{reader: common.NewReader(bytes.NewBuffer(v))}
 }
-func (v AttributeValue) Reader() common.DataReader {
-	return common.NewReader(bytes.NewBuffer(v))
+
+type AttributeValueReader struct {
+	reader *common.DataReader
+}
+
+func (r AttributeValueReader) ReadUint8() uint8 {
+	v, _ := r.reader.ReadUint8()
+	return v
+}
+
+func (r AttributeValueReader) ReadUint16() uint16 {
+	v, _ := r.reader.ReadUint16()
+	return v
+}
+
+func (r AttributeValueReader) ReadUint32() uint32 {
+	v, _ := r.reader.ReadUint32()
+	return v
 }

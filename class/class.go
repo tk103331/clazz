@@ -37,6 +37,7 @@ type Field struct {
 	RuntimeVisibleAnnotations   []Annotation
 	RuntimeInvisibleAnnotations []Annotation
 	Attributes                  []Attribute
+	Exceptions                  []string
 	ConstantValue               interface{}
 }
 

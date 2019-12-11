@@ -14,6 +14,10 @@ func NewWriter(writer io.Writer) *Writer {
 	return &Writer{writer: common.NewWriter(writer)}
 }
 
+func (w Writer) VisitStart() {
+
+}
+
 func (w Writer) VisitMagicNumber(magic uint32) {
 	w.writer.WriteUint32(magic)
 }
@@ -81,7 +85,8 @@ func (w Writer) VisitConstants(constants []ConstantData) {
 			writer.WriteUint16(methodTypeData.DescriptorIndex)
 		case TAG_CONSTANT_DYNAMIC:
 			dynamicData := data.(ConstantDynamicData)
-			writer.WriteUint32(dynamicData.value)
+			writer.WriteUint16(dynamicData.BootstrapMethodIndex)
+			writer.WriteUint16(dynamicData.NameAndTypeIndex)
 		case TAG_CONSTANT_INVOKE_DYNAMIC:
 			invokeDynamicData := data.(ConstantInvokeDynamicData)
 			writer.WriteUint16(invokeDynamicData.BootstrapMethodIndex)

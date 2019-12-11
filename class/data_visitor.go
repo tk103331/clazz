@@ -2,7 +2,6 @@ package class
 
 import (
 	"github.com/tk103331/clazz/class/data"
-	"github.com/tk103331/clazz/common"
 )
 
 type ResolveDataVisitor struct {
@@ -311,7 +310,7 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 		case data.CODE:
 			// TODO
 		case data.EXCEPTIONS:
-			// TODO
+			method.Exceptions = r.resolveMethodExceptions(attr.Value)
 		case data.DEPRECATED:
 			method.Deprecated = true
 		case data.SYNTHETIC:
@@ -339,119 +338,98 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 }
 
 func (r *ResolveDataVisitor) resolveInnerClasses(attrValue data.AttributeValue) []InnerClass {
-	array := attrValue.Uint16Array()
-	offset := 0
-	count := array[offset]
+	reader := attrValue.Reader()
+	count := reader.ReadUint16()
 	innerClasses := make([]InnerClass, count)
-	offset++
 	for i := uint16(0); i < count; i++ {
-		currentClassIndex := array[offset]
-		outerClassIndex := array[offset+1]
-		innerClassIndex := array[offset+2]
-		accessFlags := array[offset+3]
+		currentClassIndex := reader.ReadUint16()
+		outerClassIndex := reader.ReadUint16()
+		innerClassIndex := reader.ReadUint16()
+		accessFlags := reader.ReadUint16()
 		innerClasses[i] = InnerClass{r.resolveClassName(currentClassIndex), r.resolveClassName(outerClassIndex), r.resolveUTF8(innerClassIndex), accessFlags}
-		offset += 4
 
 	}
 	return innerClasses
 }
 
 func (r *ResolveDataVisitor) resolveOuterClass(attrValue data.AttributeValue) OuterClass {
-	array := attrValue.Uint16Array()
-	className := r.resolveClassName(array[0])
-	methodName, descriptor := r.resolveNameAndType(array[1])
+	reader := attrValue.Reader()
+	className := r.resolveClassName(reader.ReadUint16())
+	methodName, descriptor := r.resolveNameAndType(reader.ReadUint16())
 	return OuterClass{ClassName: className, MethodName: methodName, Descriptor: descriptor}
 }
 
 func (r *ResolveDataVisitor) resolveModulePackages(attrValue data.AttributeValue) []string {
-	offset := 0
-	array := attrValue.Uint16Array()
-	packageCount := array[offset]
-	offset += 1
+	reader := attrValue.Reader()
+	packageCount := reader.ReadUint16()
 	packages := make([]string, packageCount)
-	offset += 1
 	for i := uint16(0); i < packageCount; i++ {
-		packages[i] = r.resolveUTF8(array[offset])
-		offset += 1
+		packages[i] = r.resolveUTF8(reader.ReadUint16())
 	}
 	return packages
 }
 
 func (r *ResolveDataVisitor) resolveModuleAttributes(attrValue data.AttributeValue) Module {
-	offset := 0
-	array := attrValue.Uint16Array()
-	moduleName := r.resolveClassName(array[offset])
-	accessFlags := array[offset+1]
-	version := r.resolveUTF8(array[offset+2])
+	reader := attrValue.Reader()
+	moduleName := r.resolveClassName(reader.ReadUint16())
+	accessFlags := reader.ReadUint16()
+	version := r.resolveUTF8(reader.ReadUint16())
 
-	requireCount := array[offset]
-	offset += 1
+	requireCount := reader.ReadUint16()
 	requires := make([]ModuleRequire, requireCount)
 	for i := uint16(0); i < requireCount; i++ {
-		name := r.resolveUTF8(array[offset])
-		access := array[offset+1]
-		version := r.resolveUTF8(array[offset+2])
+		name := r.resolveUTF8(reader.ReadUint16())
+		access := reader.ReadUint16()
+		version := r.resolveUTF8(reader.ReadUint16())
 		requires[i] = ModuleRequire{Name: name, AccessFlags: access, Version: version}
-		offset += 3
 	}
 
-	exportCount := array[offset]
-	offset += 1
+	exportCount := reader.ReadUint16()
 	exports := make([]ModuleExport, exportCount)
 	for i := uint16(0); i < exportCount; i++ {
-		pkgName := r.resolveUTF8(array[offset])
-		access := array[offset+1]
-		exportToCount := array[offset+2]
-		offset += 3
+		pkgName := r.resolveUTF8(reader.ReadUint16())
+		access := reader.ReadUint16()
+		exportToCount := reader.ReadUint16()
 		var exportTos []string
 		if exportToCount != 0 {
 			exportTos = make([]string, exportToCount)
 			for j := uint16(0); j < exportToCount; j++ {
-				exportTos[j] = r.resolveUTF8(array[offset])
-				offset += 1
+				exportTos[j] = r.resolveUTF8(reader.ReadUint16())
 			}
 		}
 		exports[i] = ModuleExport{Name: pkgName, AccessFlags: access, Modules: exportTos}
 	}
 
-	openCount := array[offset]
-	offset += 1
+	openCount := reader.ReadUint16()
 	opens := make([]ModuleOpen, openCount)
 	for i := uint16(0); i < openCount; i++ {
-		pkgName := r.resolveUTF8(array[offset])
-		access := array[offset+1]
-		openToCount := array[offset+2]
-		offset += 3
+		pkgName := r.resolveUTF8(reader.ReadUint16())
+		access := reader.ReadUint16()
+		openToCount := reader.ReadUint16()
 		var openTos []string
 		if openToCount != 0 {
 			openTos = make([]string, openToCount)
 			for j := uint16(0); j < openToCount; j++ {
-				openTos[j] = r.resolveUTF8(array[offset])
-				offset += 1
+				openTos[j] = r.resolveUTF8(reader.ReadUint16())
 			}
 		}
 		opens[i] = ModuleOpen{Name: pkgName, AccessFlags: access, Modules: openTos}
 	}
 
-	useCount := array[offset]
-	offset += 1
+	useCount := reader.ReadUint16()
 	uses := make([]string, useCount)
 	for i := uint16(0); i < useCount; i++ {
-		uses[i] = r.resolveClassName(array[offset])
-		offset += 1
+		uses[i] = r.resolveClassName(reader.ReadUint16())
 	}
 
-	provideCount := array[offset]
-	offset += 1
+	provideCount := reader.ReadUint16()
 	provides := make([]ModuleProvide, provideCount)
 	for i := uint16(0); i < provideCount; i++ {
-		service := r.resolveUTF8(array[offset])
-		provideWithCount := array[offset+1]
-		offset += 2
+		service := r.resolveUTF8(reader.ReadUint16())
+		provideWithCount := reader.ReadUint16()
 		provideWiths := make([]string, provideWithCount)
 		for j := uint16(0); j < provideWithCount; j++ {
-			provideWiths[j] = r.resolveClassName(array[offset])
-			offset += 1
+			provideWiths[j] = r.resolveClassName(reader.ReadUint16())
 		}
 		provides[i] = ModuleProvide{Service: service, Provides: provideWiths}
 	}
@@ -461,7 +439,7 @@ func (r *ResolveDataVisitor) resolveModuleAttributes(attrValue data.AttributeVal
 
 func (r *ResolveDataVisitor) resolveRuntimeAnnotations(attrValue data.AttributeValue, visible bool) []Annotation {
 	reader := attrValue.Reader()
-	annotationCount, _ := reader.ReadUint16()
+	annotationCount := reader.ReadUint16()
 	annotations := make([]Annotation, annotationCount)
 	for i := uint16(0); i < annotationCount; i++ {
 		annotation := r.readAnnotation(reader)
@@ -472,11 +450,11 @@ func (r *ResolveDataVisitor) resolveRuntimeAnnotations(attrValue data.AttributeV
 }
 func (r *ResolveDataVisitor) resolveRuntimeParameterAnnotations(attrValue data.AttributeValue, visible bool) []ParameterAnnotation {
 	reader := attrValue.Reader()
-	parameterCount, _ := reader.ReadUint8()
+	parameterCount := reader.ReadUint8()
 	parameterAnnotations := make([]ParameterAnnotation, parameterCount)
 
 	for n := uint8(0); n < parameterCount; n++ {
-		annotationCount, _ := reader.ReadUint16()
+		annotationCount := reader.ReadUint16()
 		annotations := make([]Annotation, annotationCount)
 		for i := uint16(0); i < annotationCount; i++ {
 			annotation := r.readAnnotation(reader)
@@ -489,68 +467,50 @@ func (r *ResolveDataVisitor) resolveRuntimeParameterAnnotations(attrValue data.A
 	return parameterAnnotations
 }
 
-func (r *ResolveDataVisitor) readAnnotation(reader common.DataReader) Annotation {
+func (r *ResolveDataVisitor) readAnnotation(reader *data.AttributeValueReader) Annotation {
 
-	descriptorIndex, _ := reader.ReadUint16()
-	descriptor := r.resolveUTF8(descriptorIndex)
-	elementPairCount, _ := reader.ReadUint16()
+	descriptor := r.resolveUTF8(reader.ReadUint16())
+	elementPairCount := reader.ReadUint16()
 	elementPairs := make([]ElementPair, elementPairCount)
 	for j := uint16(0); j < elementPairCount; j++ {
-		nameIndex, _ := reader.ReadUint16()
-		name := r.resolveUTF8(nameIndex)
-		tag, _ := reader.ReadUint8()
-		value := r.readElementValue(reader, tag)
-		elementPairs[i] = ElementPair{Name: name, Value: value}
+		name := r.resolveUTF8(reader.ReadUint16())
+		value := r.readElementValue(reader, reader.ReadUint8())
+		elementPairs[j] = ElementPair{Name: name, Value: value}
 	}
 	return Annotation{Descriptor: descriptor, ElementPairs: elementPairs}
 }
 
-func (r *ResolveDataVisitor) readElementValue(reader common.DataReader, tag uint8) ElementValue {
-	pool := r.Data().ConstantPool
-
+func (r *ResolveDataVisitor) readElementValue(reader *data.AttributeValueReader, tag uint8) ElementValue {
 	switch tag {
 	case data.ELEMENT_TAG_BOOLEAN:
-		index, _ := reader.ReadUint16()
-		return ElementBooleanValue{Value: r.resolveInteger(index) == 0}
+		return ElementBooleanValue{Value: r.resolveInteger(reader.ReadUint16()) == 0}
 	case data.ELEMENT_TAG_BYTE:
-		index, _ := reader.ReadUint16()
-		return ElementByteValue{Value: int8(r.resolveInteger(index))}
+		return ElementByteValue{Value: int8(r.resolveInteger(reader.ReadUint16()))}
 	case data.ELEMENT_TAG_CHAR:
-		index, _ := reader.ReadUint16()
-		return ElementCharValue{Value: uint16(r.resolveInteger(index))}
+		return ElementCharValue{Value: uint16(r.resolveInteger(reader.ReadUint16()))}
 	case data.ELEMENT_TAG_SHORT:
-		index, _ := reader.ReadUint16()
-		return ElementShortValue{Value: int16(r.resolveInteger(index))}
+		return ElementShortValue{Value: int16(r.resolveInteger(reader.ReadUint16()))}
 	case data.ELEMENT_TAG_INTEGER:
-		index, _ := reader.ReadUint16()
-		return ElementIntegerValue{Value: r.resolveInteger(index)}
+		return ElementIntegerValue{Value: r.resolveInteger(reader.ReadUint16())}
 	case data.ELEMENT_TAG_LONG:
-		index, _ := reader.ReadUint16()
-		return ElementLongValue{Value: r.resolveLong(index)}
+		return ElementLongValue{Value: r.resolveLong(reader.ReadUint16())}
 	case data.ELEMENT_TAG_FLOAT:
-		index, _ := reader.ReadUint16()
-		return ElementFloatValue{Value: r.resolveFloat(index)}
+		return ElementFloatValue{Value: r.resolveFloat(reader.ReadUint16())}
 	case data.ELEMENT_TAG_DOUBLE:
-		index, _ := reader.ReadUint16()
-		return ElementDoubleValue{Value: r.resolveDouble(index)}
+		return ElementDoubleValue{Value: r.resolveDouble(reader.ReadUint16())}
 	case data.ELEMENT_TAG_STRING:
-		index, _ := reader.ReadUint16()
-		return ElementStringValue{Value: r.resolveUTF8(index)}
+		return ElementStringValue{Value: r.resolveUTF8(reader.ReadUint16())}
 	case data.ELEMENT_TAG_CLASS:
-		index, _ := reader.ReadUint16()
-		return ElementClassValue{Value: r.resolveClassName(index)}
+		return ElementClassValue{Value: r.resolveClassName(reader.ReadUint16())}
 	case data.ELEMENT_TAG_ANNOTATION:
 		return ElementAnnotationValue{Value: r.readAnnotation(reader)}
 	case data.ELEMENT_TAG_ENUM:
-		typeNameIndex, _ := reader.ReadUint16()
-		constNameIndex, _ := reader.ReadUint16()
-		return ElementEnumValue{TypeName: r.resolveUTF8(typeNameIndex), ConstValue: r.resolveUTF8(constNameIndex)}
+		return ElementEnumValue{TypeName: r.resolveUTF8(reader.ReadUint16()), ConstName: r.resolveUTF8(reader.ReadUint16())}
 	case data.ELEMENT_TAG_ARRAY:
-		itemCount, _ := reader.ReadUint16()
+		itemCount := reader.ReadUint16()
 		values := make([]ElementValue, itemCount)
 		for i := uint16(0); i < itemCount; i++ {
-			itemTag, _ := reader.ReadUint8()
-			value := r.readElementValue(reader, itemTag)
+			value := r.readElementValue(reader, reader.ReadUint8())
 			values[i] = value
 		}
 		return ElementArrayValue{Values: values}
@@ -561,26 +521,33 @@ func (r *ResolveDataVisitor) readElementValue(reader common.DataReader, tag uint
 
 func (r *ResolveDataVisitor) resolveMethodParameter(attrValue data.AttributeValue) []MethodParameter {
 	reader := attrValue.Reader()
-	parameterCount, _ := reader.ReadUint8()
+	parameterCount := reader.ReadUint8()
 	parameters := make([]MethodParameter, parameterCount)
 	for i := uint8(0); i < parameterCount; i++ {
-		nameIndex, _ := reader.ReadUint16()
-		access, _ := reader.ReadUint16()
+		nameIndex := reader.ReadUint16()
+		access := reader.ReadUint16()
 		parameters[i] = MethodParameter{ParameterName: r.resolveUTF8(nameIndex), AccessFlags: access}
 
 	}
 	return parameters
 }
 
+func (r *ResolveDataVisitor) resolveMethodExceptions(attrValue data.AttributeValue) []string {
+	reader := attrValue.Reader()
+	exceptionCount := reader.ReadUint16()
+	execeptions := make([]string, exceptionCount)
+	for i := uint16(0); i < exceptionCount; i++ {
+		execeptions[i] = r.resolveClassName(reader.ReadUint16())
+	}
+	return execeptions
+}
+
 func (r *ResolveDataVisitor) resolveNestMembers(attrValue data.AttributeValue) []string {
-	array := attrValue.Uint16Array()
-	offset := 0
-	nestMemberCount := array[offset]
-	offset += 1
+	reader := attrValue.Reader()
+	nestMemberCount := reader.ReadUint16()
 	nestMembers := make([]string, nestMemberCount)
 	for i := uint16(0); i < nestMemberCount; i++ {
-		member := r.resolveUTF8(array[offset])
-		offset += 1
+		member := r.resolveUTF8(reader.ReadUint16())
 		nestMembers[i] = member
 	}
 	return nestMembers
@@ -596,19 +563,15 @@ func (r *ResolveDataVisitor) resolveConstantDynamic(index uint16) ConstantDynami
 }
 
 func (r *ResolveDataVisitor) resolveBootstrapMethods(attrValue data.AttributeValue) []BootstrapMethod {
-	array := attrValue.Uint16Array()
-	offset := 0
-	methodCount := array[offset]
-	offset += 1
+	reader := attrValue.Reader()
+	methodCount := reader.ReadUint16()
 	methods := make([]BootstrapMethod, methodCount)
 	for i := uint16(0); i < methodCount; i++ {
-		handle := r.resolveConstantValue(array[offset]).(Handle)
-		argCount := array[offset+1]
-		offset += 2
+		handle := r.resolveConstantValue(reader.ReadUint16()).(Handle)
+		argCount := reader.ReadUint16()
 		args := make([]interface{}, argCount)
 		for j := uint16(0); j < argCount; j++ {
-			args[j] = r.resolveConstantValue(array[offset])
-			offset += 1
+			args[j] = r.resolveConstantValue(reader.ReadUint16())
 		}
 		methods[i] = BootstrapMethod{Handle: handle, Arguments: args}
 	}

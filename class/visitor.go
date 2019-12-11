@@ -12,7 +12,7 @@ type Visitor interface {
 	VisitNestHost(nestHost string)
 	VisitOuterClass(owner string, name string, descriptor string)
 	VisitAnnotation(descriptor string, visible bool) AnnotationVisitor
-	VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor
+	//VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor
 	VisitAttribute(attribute Attribute)
 	VisitNestMember(nestMember string)
 	VisitInnerClass(name string, outerName string, innerName string, access uint16)
@@ -43,7 +43,7 @@ type MethodVisitor interface {
 	VisitParameter(name string, access uint16)
 	VisitAnnotationDefault() AnnotationVisitor
 	VisitAnnotation(descriptor string, visible bool) AnnotationVisitor
-	VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor
+	//VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor
 	VisitAnnotableParameterCount(parameterCount int, visible bool)
 	VisitParameterAnnotation(parameterIndex int, descriptor string, visible bool) AnnotationVisitor
 	VisitAttribute(attribute Attribute)
@@ -63,7 +63,7 @@ type MethodVisitor interface {
 // ( visitAnnotation | visitTypeAnnotation | visitAttribute )* visitEnd.
 type FieldVisitor interface {
 	VisitAnnotation(descriptor string, visible bool) AnnotationVisitor
-	VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor
+	//VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor
 	VisitAttribute(attribute Attribute)
 	VisitEnd()
 }
@@ -96,8 +96,9 @@ func (p PrintVisitor) VisitSource(source string, debug string) {
 	fmt.Printf("Source: \"%s\"\n", source)
 }
 
-func (p PrintVisitor) VisitModule(name string, access uint16, version string) {
+func (p PrintVisitor) VisitModule(name string, access uint16, version string) ModuleVisitor {
 	fmt.Printf("Module Name:%s", name)
+	return nil
 }
 func (p PrintVisitor) VisitNestHost(name string) {
 	fmt.Printf("NestHost Name:%s", name)
@@ -111,20 +112,30 @@ func (p PrintVisitor) VisitInnerClass(name string, outerName string, innerName s
 	fmt.Printf("Name: %s OuterName: %s InnerName: %s Access:%d\n", name, outerName, innerName, access)
 }
 
-func (p PrintVisitor) VisitAnnotation(descriptor string, visible bool) {
+func (p PrintVisitor) VisitAnnotation(descriptor string, visible bool) AnnotationVisitor {
 	fmt.Printf("Descriptor: %s Visible: %v", descriptor, visible)
+	return nil
+}
+func (p PrintVisitor) VisitTypeAnnotation(typeRef int, typePath TypePath, descriptor string, visible bool) AnnotationVisitor {
+	fmt.Printf("TypeAnnotation: %v\n", descriptor)
+	return nil
 }
 
+func (p PrintVisitor) VisitNestMember(nestMember string) {
+	fmt.Printf("NestMember: %v\n", nestMember)
+}
 func (p PrintVisitor) VisitAttribute(attribute Attribute) {
 	fmt.Printf("Attribute: %v\n", attribute)
 }
 
-func (p PrintVisitor) VisitField(field Field) {
-	fmt.Printf("Field: %v\n", field)
+func (p PrintVisitor) VisitField(access uint16, name string, descriptor string, signature string, value interface{}) FieldVisitor {
+	fmt.Printf("Field: %v\n", name)
+	return nil
 }
 
-func (p PrintVisitor) VisitMethod(method Method) {
-	fmt.Printf("Method: %v\n", method)
+func (p PrintVisitor) VisitMethod(access uint16, name string, descriptor string, signature string, exceptions []string) MethodVisitor {
+	fmt.Printf("Method: %v\n", name)
+	return nil
 }
 
 func (p PrintVisitor) VisitEnd() {
