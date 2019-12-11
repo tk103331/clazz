@@ -136,7 +136,7 @@ type MethodCode struct {
 	MaxStack         uint16
 	MaxLocal         uint16
 	InstructionCount uint32
-	Instructions     []CodeInstruction
+	Instructions     []Instruction
 	ExceptionCount   uint16
 	ExceptionTable   []Exception
 	AttributeCount   uint16
