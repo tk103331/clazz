@@ -277,3 +277,7 @@ func (r AttributeValueReader) ReadUint32() uint32 {
 	v, _ := r.reader.ReadUint32()
 	return v
 }
+func (r AttributeValueReader) ReadBytes(length uint32) []byte {
+	v, _ := r.reader.ReadBytes(length)
+	return v
+}

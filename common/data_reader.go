@@ -20,7 +20,7 @@ func (dr *DataReader) ReadByte() (byte, error) {
 	return dr.r.ReadByte()
 }
 
-func (dr *DataReader) ReadBytes(length int) ([]byte, error) {
+func (dr *DataReader) ReadBytes(length uint32) ([]byte, error) {
 	bytes := make([]byte, length)
 	_, err := dr.r.Read(bytes)
 	return bytes, err

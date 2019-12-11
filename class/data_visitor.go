@@ -308,7 +308,7 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 		name := r.resolveUTF8(attr.NameIndex)
 		switch name {
 		case data.CODE:
-			// TODO
+			method.Code = r.resolveMethodCode(attr.Value)
 		case data.EXCEPTIONS:
 			method.Exceptions = r.resolveMethodExceptions(attr.Value)
 		case data.DEPRECATED:
@@ -540,6 +540,38 @@ func (r *ResolveDataVisitor) resolveMethodExceptions(attrValue data.AttributeVal
 		execeptions[i] = r.resolveClassName(reader.ReadUint16())
 	}
 	return execeptions
+}
+
+func (r *ResolveDataVisitor) resolveMethodCode(attrValue data.AttributeValue) MethodCode {
+	reader := attrValue.Reader()
+
+	maxStack := reader.ReadUint16()
+	maxLocal := reader.ReadUint16()
+	instructionCount := reader.ReadUint32()
+	instructions := make([]Instruction, instructionCount)
+	for i := uint32(0); i < instructionCount; i++ {
+		opCode := reader.ReadUint8()
+		instructions[i] = CodeInstruction{opCode: opCode}
+	}
+	exceptionCount := reader.ReadUint16()
+	exceptions := make([]Exception, exceptionCount)
+	for i := uint16(0); i < exceptionCount; i++ {
+		start := reader.ReadUint32()
+		end := reader.ReadUint32()
+		handler := reader.ReadUint32()
+		className := r.resolveClassName(reader.ReadUint16())
+		exceptions[i] = Exception{StartPC: start, EndPC: end, HandlerPC: handler, CatchType: className}
+	}
+	attributeCount := reader.ReadUint16()
+	attributes := make([]Attribute, attributeCount)
+	for i := uint16(0); i < attributeCount; i++ {
+		name := r.resolveUTF8(reader.ReadUint16())
+		length := reader.ReadUint32()
+		bytes := reader.ReadBytes(length)
+		attributes[i] = Attribute{Name: name, Content: bytes}
+	}
+
+	return MethodCode{MaxStack: maxStack, MaxLocal: maxLocal, InstructionCount: instructionCount, Instructions: instructions}
 }
 
 func (r *ResolveDataVisitor) resolveNestMembers(attrValue data.AttributeValue) []string {

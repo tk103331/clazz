@@ -54,6 +54,7 @@ type Method struct {
 	Attributes                           []Attribute
 	Exceptions                           []string
 	Parameters                           []MethodParameter
+	Code                                 MethodCode
 }
 
 type InnerClass struct {
@@ -129,6 +130,36 @@ type ParameterAnnotation struct {
 type MethodParameter struct {
 	ParameterName string
 	AccessFlags   uint16
+}
+
+type MethodCode struct {
+	MaxStack         uint16
+	MaxLocal         uint16
+	InstructionCount uint32
+	Instructions     []CodeInstruction
+	ExceptionCount   uint16
+	ExceptionTable   []Exception
+	AttributeCount   uint16
+	Attributes       []Attribute
+}
+
+type Instruction interface {
+	OpCode() uint8
+}
+
+type CodeInstruction struct {
+	opCode uint8
+}
+
+func (c CodeInstruction) OpCode() uint8 {
+	return c.OpCode()
+}
+
+type Exception struct {
+	StartPC   uint32
+	EndPC     uint32
+	HandlerPC uint32
+	CatchType string
 }
 
 type ConstantReference struct {
