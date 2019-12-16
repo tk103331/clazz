@@ -47,6 +47,7 @@ type Method struct {
 	Descriptor                           string
 	Signature                            string
 	Deprecated                           bool
+	AnnotationDefault                    ElementValue
 	RuntimeVisibleAnnotations            []Annotation
 	RuntimeInvisibleAnnotations          []Annotation
 	RuntimeVisibleParameterAnnotations   []ParameterAnnotation

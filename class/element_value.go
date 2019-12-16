@@ -100,7 +100,7 @@ func (e ElementClassValue) Tag() uint8 {
 }
 
 type ElementAnnotationValue struct {
-	Value interface{}
+	Value Annotation
 }
 
 func (e ElementAnnotationValue) Tag() uint8 {

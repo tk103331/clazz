@@ -56,6 +56,7 @@ type MethodVisitor interface {
 	VisitFieldInstruction(opCode uint16, owner string, name string, descriptor string)
 	VisitMethodInstruction(opCode uint16, owner string, name string, descriptor string, isInterface bool)
 	VisitInvokeDynamicInstruction(opCode uint16, name string, descriptor string, bootstrapMethodHandle Handle, bootstrapMethodArguments []interface{})
+	VisitEnd()
 }
 
 // A visitor to visit a Java field.
@@ -74,7 +75,7 @@ type FieldVisitor interface {
 type AnnotationVisitor interface {
 	Visit(name string, value interface{})
 	VisitEnum(name string, descriptor string, value string)
-	VisitAnnotation(descriptor string, visible bool) AnnotationVisitor
+	VisitAnnotation(name string, descriptor string) AnnotationVisitor
 	VisitArray(name string) AnnotationVisitor
 	VisitEnd()
 }

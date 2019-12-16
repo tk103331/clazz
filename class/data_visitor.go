@@ -86,14 +86,103 @@ func (r *ResolveDataVisitor) acceptModule(visitor ModuleVisitor, module Module) 
 	}
 }
 func (r *ResolveDataVisitor) acceptAnnotation(visitor AnnotationVisitor, annotation Annotation) {
-	// TODO
+	for _, pair := range annotation.ElementPairs {
+		r.acceptAnnotationValue(visitor, pair.Name, pair.Value)
+	}
+	visitor.VisitEnd()
+}
+
+func (r *ResolveDataVisitor) acceptAnnotationValue(visitor AnnotationVisitor, name string, value ElementValue) {
+	switch value.Tag() {
+	case data.ELEMENT_TAG_BOOLEAN:
+		visitor.Visit(name, value.(ElementBooleanValue).Value)
+	case data.ELEMENT_TAG_BYTE:
+		visitor.Visit(name, value.(ElementByteValue).Value)
+	case data.ELEMENT_TAG_CHAR:
+		visitor.Visit(name, value.(ElementCharValue).Value)
+	case data.ELEMENT_TAG_SHORT:
+		visitor.Visit(name, value.(ElementShortValue).Value)
+	case data.ELEMENT_TAG_INTEGER:
+		visitor.Visit(name, value.(ElementIntegerValue).Value)
+	case data.ELEMENT_TAG_LONG:
+		visitor.Visit(name, value.(ElementLongValue).Value)
+	case data.ELEMENT_TAG_FLOAT:
+		visitor.Visit(name, value.(ElementFloatValue).Value)
+	case data.ELEMENT_TAG_DOUBLE:
+		visitor.Visit(name, value.(ElementDoubleValue).Value)
+	case data.ELEMENT_TAG_STRING:
+		visitor.Visit(name, value.(ElementStringValue).Value)
+	case data.ELEMENT_TAG_CLASS:
+		visitor.Visit(name, value.(ElementClassValue).Value)
+	case data.ELEMENT_TAG_ANNOTATION:
+		annotation := value.(ElementAnnotationValue).Value
+		annotationVisitor := visitor.VisitAnnotation(name, annotation.Descriptor)
+		r.acceptAnnotation(annotationVisitor, annotation)
+	case data.ELEMENT_TAG_ENUM:
+		enumValue := value.(ElementEnumValue)
+		visitor.VisitEnum(name, enumValue.TypeName, enumValue.ConstName)
+	case data.ELEMENT_TAG_ARRAY:
+		annotationVisitor := visitor.VisitArray(name)
+		for _, elemValue := range value.(ElementArrayValue).Values {
+			r.acceptAnnotationValue(annotationVisitor, "", elemValue)
+		}
+	}
 }
 
 func (r *ResolveDataVisitor) acceptField(visitor FieldVisitor, field Field) {
-	// TODO
+	for _, annotation := range field.RuntimeVisibleAnnotations {
+		annotationVisitor := visitor.VisitAnnotation(annotation.Descriptor, annotation.Visible)
+		r.acceptAnnotation(annotationVisitor, annotation)
+	}
+	for _, annotation := range field.RuntimeInvisibleAnnotations {
+		annotationVisitor := visitor.VisitAnnotation(annotation.Descriptor, annotation.Visible)
+		r.acceptAnnotation(annotationVisitor, annotation)
+	}
+	// TODO RuntimeVisibleTypeAnnotations
+	// TODO RuntimeInvisibleTypeAnnotations
+	for _, attribute := range field.Attributes {
+		visitor.VisitAttribute(attribute)
+	}
+	visitor.VisitEnd()
 }
 func (r *ResolveDataVisitor) acceptMethod(visitor MethodVisitor, method Method) {
-	// TODO
+	for _, parameter := range method.Parameters {
+		visitor.VisitParameter(parameter.ParameterName, parameter.AccessFlags)
+	}
+	annotationDefaultVisitor := visitor.VisitAnnotationDefault()
+	r.acceptAnnotationValue(annotationDefaultVisitor, "", method.AnnotationDefault)
+
+	for _, annotation := range method.RuntimeVisibleAnnotations {
+		annotationVisitor := visitor.VisitAnnotation(annotation.Descriptor, annotation.Visible)
+		r.acceptAnnotation(annotationVisitor, annotation)
+	}
+	for _, annotation := range method.RuntimeInvisibleAnnotations {
+		annotationVisitor := visitor.VisitAnnotation(annotation.Descriptor, annotation.Visible)
+		r.acceptAnnotation(annotationVisitor, annotation)
+	}
+	// TODO RuntimeVisibleTypeAnnotations
+	// TODO RuntimeInvisibleTypeAnnotations
+	for index, parameter := range method.RuntimeVisibleParameterAnnotations {
+		count := len(method.RuntimeVisibleParameterAnnotations)
+		visitor.VisitAnnotableParameterCount(count, true)
+		for _, annotation := range parameter.Annotations {
+			annotationVisitor := visitor.VisitParameterAnnotation(index, annotation.Descriptor, annotation.Visible)
+			r.acceptAnnotation(annotationVisitor, annotation)
+		}
+	}
+	for index, parameter := range method.RuntimeInvisibleParameterAnnotations {
+		count := len(method.RuntimeVisibleParameterAnnotations)
+		visitor.VisitAnnotableParameterCount(count, true)
+		for _, annotation := range parameter.Annotations {
+			annotationVisitor := visitor.VisitParameterAnnotation(index, annotation.Descriptor, annotation.Visible)
+			r.acceptAnnotation(annotationVisitor, annotation)
+		}
+	}
+	for _, attribute := range method.Attributes {
+		visitor.VisitAttribute(attribute)
+	}
+	// TODO VisitCode
+	visitor.VisitEnd()
 }
 
 func (r *ResolveDataVisitor) VisitEnd() {
@@ -315,6 +404,8 @@ func (r *ResolveDataVisitor) resolveMethod(methodData data.MethodData) Method {
 			method.Deprecated = true
 		case data.SYNTHETIC:
 			method.AccessFlags |= data.ACC_SYNTHETIC
+		case data.ANNOTATION_DEFAULT:
+			method.AnnotationDefault = r.readElementValue(attr.Value.Reader())
 		case data.RUNTIME_VISIBLE_ANNOTATIONS:
 			method.RuntimeVisibleAnnotations = r.resolveRuntimeAnnotations(attr.Value, true)
 		case data.RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
@@ -474,13 +565,14 @@ func (r *ResolveDataVisitor) readAnnotation(reader *data.AttributeValueReader) A
 	elementPairs := make([]ElementPair, elementPairCount)
 	for j := uint16(0); j < elementPairCount; j++ {
 		name := r.resolveUTF8(reader.ReadUint16())
-		value := r.readElementValue(reader, reader.ReadUint8())
+		value := r.readElementValue(reader)
 		elementPairs[j] = ElementPair{Name: name, Value: value}
 	}
 	return Annotation{Descriptor: descriptor, ElementPairs: elementPairs}
 }
 
-func (r *ResolveDataVisitor) readElementValue(reader *data.AttributeValueReader, tag uint8) ElementValue {
+func (r *ResolveDataVisitor) readElementValue(reader *data.AttributeValueReader) ElementValue {
+	tag := reader.ReadUint8()
 	switch tag {
 	case data.ELEMENT_TAG_BOOLEAN:
 		return ElementBooleanValue{Value: r.resolveInteger(reader.ReadUint16()) == 0}
@@ -510,7 +602,7 @@ func (r *ResolveDataVisitor) readElementValue(reader *data.AttributeValueReader,
 		itemCount := reader.ReadUint16()
 		values := make([]ElementValue, itemCount)
 		for i := uint16(0); i < itemCount; i++ {
-			value := r.readElementValue(reader, reader.ReadUint8())
+			value := r.readElementValue(reader)
 			values[i] = value
 		}
 		return ElementArrayValue{Values: values}
